@@ -391,35 +391,58 @@ For more information, see the [official documentation](https://docs.fedoraprojec
 
 # Encrypted Drives
 
-## LUKS-encrypted drives
+## LUKS-Encrypted Drives
 
-If your drive is encrypted with LUKS, you **must** perform the following steps **before rebooting** after driver installation.
+If your drive is encrypted with LUKS, perform these steps before rebooting to ensure the password prompt appears correctly.
 
-### Step 1: Add the plymouth kernel argument
+### Step 1: Add the Plymouth Kernel Argument
 
-Run the following command to tell plymouth to use the simple DRM driver, which ensures the LUKS password prompt appears correctly on boot:
+Run the following to tell Plymouth to use a basic display driver for the boot screen:
 
 ```bash
 sudo grubby --update-kernel=ALL --args='plymouth.use-simpledrm=1'
 ```
 
-### Step 2 (AMD iGPU only): Prevent amdgpu from stealing the framebuffer
+### Step 2: Configure Driver Loading (Fix Black Screen)
 
-If you have an AMD CPU with integrated graphics and see a black screen at the LUKS password prompt, the `amdgpu` driver may be claiming the framebuffer before the LUKS prompt can display. To fix this, exclude it from the initramfs:
+This ensures the Nvidia driver is available early enough to show the LUKS prompt, while preventing integrated graphics from causing conflicts.
+
+Force-load Nvidia:
+
+```Bash
+printf '%s\n' 'force_drivers+=" nvidia nvidia_modeset nvidia_uvm nvidia_drm "' | sudo tee /etc/dracut.conf.d/nvidia.conf
+```
+
+### Step 3: AMD iGPU Only (Optional): If you have an AMD CPU with integrated graphics, prevent it from "stealing" the display before Nvidia takes over:
 
 ```bash
 echo 'omit_drivers+=" amdgpu "' | sudo tee /etc/dracut.conf.d/omit-amdgpu.conf
-sudo dracut --force
 ```
 
-After login, the NVIDIA driver takes over as normal.
+> [!NOTE]
+> Intel iGPU users experiencing the same issue can substitute `amdgpu` with `i915`.
+
+#### Step 4: Apply Changes & Rebuild Initramfs
+You **must** run the command below that matches your system type to apply the new settings into your boot image.
+
+*   **For Atomic Systems (Silverblue, Bazzite, Kinoite):**
+    This enables local boot-image builds (necessary for the drivers to be detected).
+    
+    ```bash
+    sudo rpm-ostree initramfs --enable
+    ```
+*   **For Workstation / DNF-based Systems:**
+    This manually regenerates your current boot image.
+    
+    ```bash
+    sudo dracut --force
+    ```
 
 > [!NOTE]
-> Only run Step 2 if you have an AMD iGPU and experience a black screen at the LUKS prompt. Intel iGPU users experiencing the same issue can substitute `amdgpu` with `i915`.
+> **Atomic Users:** After enabling this, your next reboot and all future system updates will take a few minutes longer as the system builds a custom boot image tailored to your hardware.
 
-### Step 3: Reboot
-
-After completing the steps above, return to the reboot step in your installation section. If you have Secure Boot enabled, MOK key enrollment will occur on reboot for Atomic.
+#### Step 5: Reboot
+Once the command in Step 3 finishes, you can safely reboot. If Secure Boot is enabled, follow the MOK enrollment steps upon restarting.
 
 **If you faced issues, please create an issue and I will try to help.**
 
