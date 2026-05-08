@@ -422,10 +422,10 @@ echo 'omit_drivers+=" amdgpu "' | sudo tee /etc/dracut.conf.d/omit-amdgpu.conf
 > [!NOTE]
 > Intel iGPU users experiencing the same issue can substitute `amdgpu` with `i915`.
 
-#### Step 4: Apply Changes & Rebuild Initramfs
+### Step 4: Apply Changes & Rebuild Initramfs
 You **must** run the command below that matches your system type to apply the new settings into your boot image.
 
-*   **For Atomic Systems (Silverblue, Bazzite, Kinoite):**
+*   **For Atomic Systems (Silverblue, Cosmic, Kinoite):**
     This enables local boot-image builds (necessary for the drivers to be detected).
     
     ```bash
